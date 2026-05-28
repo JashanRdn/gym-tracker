@@ -530,6 +530,22 @@ function autoSetNum() {
   document.getElementById('set-num').value = count + 1;
 }
 
+async function renumberSets(sessionId, exerciseId) {
+  const toRenumber = liveSets
+    .filter(s => s.session_id === sessionId && s.exercise_id === exerciseId)
+    .sort((a, b) => a.set_number - b.set_number);
+  for (let i = 0; i < toRenumber.length; i++) {
+    const s = toRenumber[i];
+    const newNum = i + 1;
+    if (s.set_number !== newNum) {
+      await api('Sets?id=eq.' + s.id, 'PATCH', { set_number: newNum });
+      s.set_number = newNum;
+      const globalSet = sets.find(gs => gs.id === s.id);
+      if (globalSet) globalSet.set_number = newNum;
+    }
+  }
+}
+
 document.getElementById('set-ex').addEventListener('change', autoSetNum);
 
 async function startSession() {
@@ -597,11 +613,16 @@ async function finishSession() {
 }
 
 async function deleteSet(id) {
+  const deleted = liveSets.find(s => s.id === id) || sets.find(s => s.id === id);
   await api('Sets?id=eq.' + id, 'DELETE');
   liveSets = liveSets.filter(s => s.id !== id);
   sets = sets.filter(s => s.id !== id);
+  if (deleted && currentSessionId) {
+    await renumberSets(deleted.session_id, deleted.exercise_id);
+  }
   renderLive();
   renderHistory();
+  autoSetNum();
 }
 
 async function continueSession(sessId) {
