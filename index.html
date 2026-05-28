@@ -583,8 +583,8 @@ function renderLive() {
     <div class="ex-group">
       <div class="ex-label">${name}</div>
       <table>
-        <tr><th>Set</th><th>Weight</th><th>Reps</th><th>RIR</th><th>Notes</th></tr>
-        ${ss.map(s => `<tr><td>${s.set_number}</td><td>${s.weight_kg}kg</td><td>${s.reps}</td><td>${s.rir ?? '—'}</td><td style="color:var(--muted)">${s.notes||''}</td></tr>`).join('')}
+        <tr><th>Set</th><th>Weight</th><th>Reps</th><th>RIR</th><th>Notes</th><th></th></tr>
+        ${ss.map(s => `<tr><td>${s.set_number}</td><td>${s.weight_kg}kg</td><td>${s.reps}</td><td>${s.rir ?? '—'}</td><td style="color:var(--muted)">${s.notes||''}</td><td><button class="btn btn-sm btn-danger" onclick="deleteSet(${s.id})" style="padding:3px 8px;font-size:12px;">✕</button></td></tr>`).join('')}
       </table>
     </div>`).join('');
 }
@@ -597,6 +597,32 @@ async function finishSession() {
   document.getElementById('log-notes').value = '';
   setStatus('sess-status', 'Session saved ✓');
   await loadAll();
+}
+
+async function deleteSet(id) {
+  await api('Sets?id=eq.' + id, 'DELETE');
+  liveSets = liveSets.filter(s => s.id !== id);
+  sets = sets.filter(s => s.id !== id);
+  renderLive();
+  renderHistory();
+}
+
+async function continueSession(sessId) {
+  const sess = sessions.find(s => s.id === sessId);
+  if (!sess) return;
+  currentSessionId = sessId;
+  liveSets = sets.filter(s => s.session_id === sessId);
+  document.getElementById('log-date').value = sess.date;
+  document.getElementById('log-notes').value = sess.notes || '';
+  document.getElementById('log-area').style.display = 'block';
+  setStatus('sess-status', 'Continuing session from ' + fmtDate(sess.date));
+  renderLive();
+  autoSetNum();
+  // Switch to log tab
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-log').classList.add('active');
+  document.querySelector('.nav-item').classList.add('active');
 }
 
 // ── History ───────────────────────────────────────────────────────────────────
@@ -612,20 +638,30 @@ function renderHistory() {
       grouped[name].push(s);
     });
     const vol = ss.reduce((a, s) => a + s.weight_kg * s.reps, 0);
+    const isActive = currentSessionId === sess.id;
     return `<div class="card session-card">
       <div class="session-head">
         <div>
-          <div class="session-date">${fmtDate(sess.date)}</div>
+          <div class="session-date">${fmtDate(sess.date)}${isActive ? ' <span style="color:var(--accent);font-size:11px;font-family:var(--mono);">● active</span>' : ''}</div>
           ${sess.notes ? `<div class="session-note">${sess.notes}</div>` : ''}
         </div>
-        <div class="session-meta">${ss.length} sets · ${Math.round(vol).toLocaleString()}kg vol</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="session-meta">${ss.length} sets · ${Math.round(vol).toLocaleString()}kg vol</span>
+          ${!isActive ? `<button class="btn btn-sm" onclick="continueSession(${sess.id})">Continue</button>` : ''}
+        </div>
       </div>
       ${Object.entries(grouped).map(([name, exss]) => `
         <div class="ex-group">
           <div class="ex-label">${name}</div>
           <table>
-            <tr><th>Set</th><th>Weight</th><th>Reps</th><th>RIR</th></tr>
-            ${exss.map(s => `<tr><td>${s.set_number}</td><td>${s.weight_kg}kg</td><td>${s.reps}</td><td>${s.rir??'—'}</td></tr>`).join('')}
+            <tr><th>Set</th><th>Weight</th><th>Reps</th><th>RIR</th><th></th></tr>
+            ${exss.map(s => `<tr>
+              <td>${s.set_number}</td>
+              <td>${s.weight_kg}kg</td>
+              <td>${s.reps}</td>
+              <td>${s.rir??'—'}</td>
+              <td><button class="btn btn-sm btn-danger" onclick="deleteSet(${s.id})" style="padding:3px 8px;font-size:12px;">✕</button></td>
+            </tr>`).join('')}
           </table>
         </div>`).join('')}
     </div>`;
