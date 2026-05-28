@@ -412,10 +412,7 @@
 </div>
 
 <script>
-const SUPA = {
-  url: localStorage.getItem('gym_url') || '',
-  key: localStorage.getItem('gym_key') || ''
-};
+const SUPA = { url: '', key: '' };
 
 let exercises = [], muscleGroups = [], sessions = [], sets = [];
 let currentSessionId = null, liveSets = [];
@@ -754,16 +751,11 @@ function setStatus(id, msg, err = false) {
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.getElementById('log-date').value = todayStr();
 
-if (SUPA.url && SUPA.key) {
-  document.getElementById('cfg-url').value = SUPA.url;
-  document.getElementById('cfg-key').value = SUPA.key;
-  loadAll().then(() => {
-    document.getElementById('data-card').style.display = 'block';
-    document.getElementById('cfg-status').textContent = 'Connected ✓';
-    renderSettings();
-    populateExSelect();
-  }).catch(() => {});
-}
+const DEFAULT_URL = 'https://lnknnplpkgmsnmpgouwu.supabase.co';
+const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxua25ucGxwa2dtc25tcGdvdXd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NDM2MzIsImV4cCI6MjA5NTUxOTYzMn0.AaDymWkIv4ZjTJ6NZCz9rlaSf1hRTvmtzGhjtTbSWJI';
+
+document.getElementById('cfg-url').value = localStorage.getItem('gym_url') || DEFAULT_URL;
+document.getElementById('cfg-key').value = localStorage.getItem('gym_key') || DEFAULT_KEY;
 </script>
 </body>
 </html>
